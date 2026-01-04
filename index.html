@@ -98,6 +98,7 @@
         .btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-disabled { background: #ccc; pointer-events: none; }
 
         .card {
             background: var(--card-bg); backdrop-filter: blur(10px);
@@ -156,7 +157,17 @@
         #rhythm-canvas { background: rgba(0,0,0,0.1); border-radius: 15px; width: 100%; height: 300px; margin-bottom: 10px; position: relative; overflow: hidden; }
         .beat-line { position: absolute; bottom: 50px; width: 100%; height: 4px; background: var(--primary); box-shadow: 0 0 10px var(--primary); }
         .falling-heart { position: absolute; font-size: 2rem; color: #ff4d6d; }
-        .hit-feedback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: bold; opacity: 0; pointer-events: none; }
+        .hit-feedback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: bold; opacity: 0; pointer-events: none; z-index: 10; }
+        
+        /* New: Result Overlay */
+        .result-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; border-radius: 15px;
+            z-index: 20; opacity: 0; pointer-events: none; transition: 0.5s;
+        }
+        .result-overlay.show { opacity: 1; pointer-events: all; }
+        
         @keyframes pop { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } }
 
         /* --- 6. QUIZ --- */
@@ -294,18 +305,28 @@
         <section id="page-game-rhythm" class="page">
             <h2>🎵 จังหวะหัวใจ</h2>
             <p>กดปุ่ม 🩷 เมื่อหัวใจหล่นมาถึงเส้น!</p>
-            <div class="card">
+            <p>หัวใจ: <span id="heart-count">0</span>/20</p>
+
+            <div class="card" style="position: relative;">
                 <div id="rhythm-canvas">
                     <div class="beat-line"></div>
                     <div id="hit-msg" class="hit-feedback">PERFECT!</div>
+
+                    <div id="rhythm-result" class="result-overlay">
+                        <h3>จบเกมแล้ว! 🎉</h3>
+                        <p>คะแนน: <span id="final-score" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">0</span></p>
+                        <p id="final-rank" style="margin: 10px 0;">สุดยอด!</p>
+                        <button class="btn" onclick="navigateTo('page-quiz')">ไปทำควิซทายใจ 👉</button>
+                        <button class="btn btn-outline" onclick="startGameRhythm()" style="margin-top: 10px;">เล่นใหม่</button>
+                    </div>
                 </div>
                 <div style="text-align: center;">
                     <h3>คะแนน: <span id="rhythm-score">0</span></h3>
-                    <button id="rhythm-btn" class="btn" style="width: 80px; height: 80px; border-radius: 50%; font-size: 2rem;">🩷</button>
+                    <button id="rhythm-btn" class="btn" style="width: 80px; height: 80px; border-radius: 50%; font-size: 2rem; box-shadow: 0 5px 15px rgba(255,0,100,0.3);">🩷</button>
                 </div>
             </div>
-            <button class="btn" onclick="startGameRhythm()">เริ่มเกม</button>
-            <button class="btn btn-outline" onclick="navigateTo('page-quiz')">ข้ามไปควิซ 👉</button>
+            <button id="start-rhythm-btn" class="btn" onclick="startGameRhythm()">เริ่มเกม</button>
+            <button id="skip-rhythm-btn" class="btn btn-outline hidden" onclick="navigateTo('page-quiz')">ข้ามไปควิซ 👉</button>
         </section>
 
         <section id="page-quiz" class="page">
@@ -558,28 +579,51 @@
             }
         }
 
-        // --- MINI GAME 2: RHYTHM (Simplified) ---
+        // --- MINI GAME 2: RHYTHM (UPDATED: WITH GAME OVER) ---
         let rhythmScore = 0;
         let gameInterval;
         let isGameRunning = false;
+        
+        // Settings for Rhythm Game
+        const maxHearts = 20;
+        let heartsSpawned = 0;
+        let heartsProcessed = 0; // Count finished hearts (hit or missed)
 
         function startGameRhythm() {
             if(isGameRunning) return;
+            
+            // Reset Variables
             isGameRunning = true;
             rhythmScore = 0;
-            document.getElementById('rhythm-score').innerText = rhythmScore;
+            heartsSpawned = 0;
+            heartsProcessed = 0;
             
+            // UI Resets
+            document.getElementById('rhythm-score').innerText = rhythmScore;
+            document.getElementById('heart-count').innerText = "0";
+            document.getElementById('rhythm-result').classList.remove('show');
+            document.getElementById('start-rhythm-btn').classList.add('hidden'); // Hide start button
+            document.getElementById('skip-rhythm-btn').classList.add('hidden');
+            document.getElementById('rhythm-btn').classList.remove('btn-disabled');
+
             const canvas = document.getElementById('rhythm-canvas');
             // Remove old hearts
             document.querySelectorAll('.falling-heart').forEach(e => e.remove());
 
-            // Spawn hearts loop
+            // Spawn loop
             gameInterval = setInterval(() => {
                 if(!isGameRunning) return;
-                spawnHeart(canvas);
-            }, 1000);
+                
+                if (heartsSpawned < maxHearts) {
+                    spawnHeart(canvas);
+                    heartsSpawned++;
+                    document.getElementById('heart-count').innerText = heartsSpawned;
+                } else {
+                    clearInterval(gameInterval); // Stop spawning
+                }
+            }, 1000); // Spawn every 1 second
 
-            // Button listener
+            // Bind click
             document.getElementById('rhythm-btn').onclick = () => checkHit();
         }
 
@@ -592,46 +636,80 @@
             container.appendChild(heart);
 
             let pos = -50;
-            const speed = 3; 
+            const speed = 4; // Speed
             const fall = setInterval(() => {
                 if(!isGameRunning) { clearInterval(fall); return; }
                 pos += speed;
                 heart.style.top = pos + 'px';
                 
-                // Missed
-                if(pos > 300) {
+                // Missed (Fell out of canvas)
+                if(pos > 320) {
                     clearInterval(fall);
                     if(heart.parentNode) heart.remove();
                     showFeedback("MISS");
+                    processHeartEnd();
                 }
             }, 20);
             
-            // Tag interval to element to clear later if needed
             heart.dataset.interval = fall;
         }
 
         function checkHit() {
+            if(!isGameRunning) return;
             const hearts = document.querySelectorAll('.falling-heart');
-            const lineY = 250; // Approximated position of line inside 300px container (bottom: 50px)
             let hit = false;
 
             hearts.forEach(h => {
-                const rect = h.getBoundingClientRect(); // Global coords
-                // Since this is relative, let's just use top style parsing for simplicity in single file
+                if(hit) return; // Hit only one at a time
                 const topVal = parseInt(h.style.top);
-                
-                // Hit window: 230px to 270px
-                if (topVal >= 220 && topVal <= 280) {
+                // Hit window: 220px to 280px (Line is around 250px)
+                if (topVal >= 210 && topVal <= 290) {
                     hit = true;
                     rhythmScore += 100;
                     document.getElementById('rhythm-score').innerText = rhythmScore;
+                    
+                    // Stop movement
+                    clearInterval(h.dataset.interval);
                     h.remove();
+                    
                     showFeedback("PERFECT!");
                     confettiEffect();
+                    processHeartEnd();
                 }
             });
 
-            if(!hit) showFeedback("...");
+            if(!hit) {
+                // Optional: Feedback for misclick
+                // showFeedback("...");
+            }
+        }
+        
+        function processHeartEnd() {
+            heartsProcessed++;
+            if(heartsProcessed >= maxHearts) {
+                // Wait a bit for the last heart animation then end
+                setTimeout(endGameRhythm, 500);
+            }
+        }
+        
+        function endGameRhythm() {
+            isGameRunning = false;
+            document.getElementById('rhythm-btn').classList.add('btn-disabled');
+            
+            // Determine Rank
+            let rankMsg = "";
+            if(rhythmScore >= 1800) rankMsg = "เนี๊ยะะ เป๊ะจาดดด 💖";
+            else if(rhythmScore >= 1000) rankMsg = "เก่งมากกกก 🥰";
+            else rankMsg = "พยายามอีกนิดนะ! 💕";
+            
+            document.getElementById('final-score').innerText = rhythmScore;
+            document.getElementById('final-rank').innerText = rankMsg;
+            
+            // Show result overlay
+            document.getElementById('rhythm-result').classList.add('show');
+            // Allow user to skip or replay
+            document.getElementById('skip-rhythm-btn').classList.remove('hidden');
+            document.getElementById('start-rhythm-btn').classList.remove('hidden');
         }
 
         function showFeedback(text) {
@@ -640,6 +718,8 @@
             msg.style.animation = 'none';
             msg.offsetHeight; /* trigger reflow */
             msg.style.animation = 'pop 0.5s ease-out';
+            if(text === "MISS") msg.style.color = "#999";
+            else msg.style.color = "#ff4d6d";
         }
 
         // --- QUIZ ---
@@ -789,7 +869,3 @@
     </script>
 </body>
 </html>
-
-
-
-
