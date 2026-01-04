@@ -655,11 +655,11 @@
             const [c1, c2] = flippedCards;
             if (c1.dataset.emoji === c2.dataset.emoji) {
                 matchedPairs++;
-                document.getElementById('memory-feedback').innerText = "แมทช์แล้ว! ดีมากเมย์ 💖";
+                document.getElementById('memory-feedback').innerText = "แมทช์แล้ว 💖";
                 flippedCards = [];
                 confettiEffect();
                 if (matchedPairs === memoryItems.length) {
-                    document.getElementById('memory-feedback').innerText = "สุดยอดเลย เมย์!";
+                    document.getElementById('memory-feedback').innerText = "สุดยอด!";
                     document.getElementById('memory-next-btn').classList.remove('hidden');
                 }
             } else {
@@ -787,9 +787,9 @@
             document.getElementById('rhythm-btn').classList.add('btn-disabled');
             
             let rankMsg = "";
-            if(rhythmScore >= 1800) rankMsg = "เทพซ่า! รักเบสสุดๆ 💖";
-            else if(rhythmScore >= 1000) rankMsg = "เก่งมากเมย์! 🥰";
-            else rankMsg = "พยายามอีกนิดนะ! แต่ก็น่ารัก 💕";
+            if(rhythmScore >= 1800) rankMsg = "เป๊ะมากกกกกก 💖";
+            else if(rhythmScore >= 1000) rankMsg = "เก่งมากคร้าบบ 🥰";
+            else rankMsg = "พยายามอีกนิดนะ 💕";
             
             document.getElementById('final-score').innerText = rhythmScore;
             document.getElementById('final-rank').innerText = rankMsg;
@@ -837,7 +837,7 @@
 
             if(index === quizData[currentQ].correct) {
                 el.classList.add('correct');
-                document.getElementById('quiz-feedback').innerText = "เก่งมากเมย์! รู้จักกันดีจริง ๆ 💕";
+                document.getElementById('quiz-feedback').innerText = "เก่งมาก💕";
                 document.getElementById('quiz-feedback').style.color = "green";
                 confettiEffect();
             } else {
@@ -948,3 +948,4 @@
     </script>
 </body>
 </html>
+
