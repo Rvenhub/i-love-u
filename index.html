@@ -540,11 +540,20 @@
                     return;
                 }
                 
+                // --- ASK FOR CAPTION ---
+                let caption = prompt("ตั้งชื่อรูปนี้หน่อยครับ:", "ความทรงจำของเรา");
+                if (caption === null) {
+                    input.value = ""; // Cancelled
+                    return;
+                }
+                if (caption.trim() === "") caption = "ความทรงจำของเรา";
+
                 // Compress image before saving to LocalStorage (Limit 5MB total usually)
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     compressImage(e.target.result, 600, 0.7).then(compressedSrc => {
-                        savedImages.unshift({ src: compressedSrc, cap: "รูปใหม่!" });
+                        // Save with Caption
+                        savedImages.unshift({ src: compressedSrc, cap: caption });
                         saveToLocal();
                         renderGallery();
                     });
@@ -771,9 +780,9 @@
             document.getElementById('rhythm-btn').classList.add('btn-disabled');
             
             let rankMsg = "";
-            if(rhythmScore >= 1800) rankMsg = "เทพซ่า! รักเบสสุดๆ 💖";
-            else if(rhythmScore >= 1000) rankMsg = "เก่งมากเมย์! 🥰";
-            else rankMsg = "พยายามอีกนิดนะ! แต่ก็น่ารัก 💕";
+            if(rhythmScore >= 1800) rankMsg = "เปีะจาดด 💖";
+            else if(rhythmScore >= 1000) rankMsg = "เก่งมากกกก! 🥰";
+            else rankMsg = "พยายามอีกนิดนะ! 💕";
             
             document.getElementById('final-score').innerText = rhythmScore;
             document.getElementById('final-rank').innerText = rankMsg;
@@ -821,7 +830,7 @@
 
             if(index === quizData[currentQ].correct) {
                 el.classList.add('correct');
-                document.getElementById('quiz-feedback').innerText = "เก่งมากเมย์! รู้จักกันดีจริง ๆ 💕";
+                document.getElementById('quiz-feedback').innerText = "เก่งมาก! 💕";
                 document.getElementById('quiz-feedback').style.color = "green";
                 confettiEffect();
             } else {
