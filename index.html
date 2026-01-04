@@ -9,10 +9,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- 1. THEME VARIABLES --- */
+        /* --- 1. VARIABLES --- */
         :root {
             --primary: #ff9a9e;
             --primary-grad: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            --primary-dark: #ff6b81;
             --glass-bg: rgba(255, 255, 255, 0.75);
             --glass-border: 2px solid rgba(255, 255, 255, 0.9);
             --font-head: 'Mali', cursive;
@@ -20,7 +21,9 @@
             --bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
+        /* CUSTOM CURSOR & BODY */
         body {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23ff6b81"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') 12 12, auto;
             margin: 0; padding: 0;
             font-family: var(--font-body);
             color: #555;
@@ -29,7 +32,30 @@
             padding-bottom: 140px;
             background: #333;
             transition: background 1s ease;
+            -webkit-tap-highlight-color: transparent;
         }
+        
+        /* NOISE & VIGNETTE */
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 9000;
+        }
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 60%, rgba(255, 154, 158, 0.15) 100%);
+            pointer-events: none; z-index: 9001;
+            animation: breatheVignette 4s infinite alternate;
+        }
+        @keyframes breatheVignette { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* PAGE TRANSITION FLASH */
+        #page-transition {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 20000; pointer-events: none;
+            opacity: 0; transition: opacity 0.5s ease;
+        }
+        #page-transition.active { opacity: 1; pointer-events: all; }
 
         /* --- 2. BACKGROUND SCENES --- */
         .bg-scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; transition: opacity 1.5s ease; opacity: 0; pointer-events: none; overflow: hidden; }
@@ -41,10 +67,7 @@
         @keyframes sunPulse { 0% { transform: scale(1); box-shadow: 0 0 50px #ffd700; } 100% { transform: scale(1.1); box-shadow: 0 0 80px #ffeb3b; } }
         .cloud { position: absolute; background: rgba(255,255,255,0.8); border-radius: 50px; animation: moveCloud linear infinite; filter: blur(8px); }
         @keyframes moveCloud { from { transform: translateX(-20vw); } to { transform: translateX(120vw); } }
-        .bird-final { position: absolute; font-size: 24px; z-index: -1; will-change: transform; top: var(--startY); }
-        @keyframes flyRightWavy { 0% { transform: translateX(-10vw) translateY(0) scaleX(1); } 50% { transform: translateX(60vw) translateY(0) scaleX(1); } 100% { transform: translateX(120vw) translateY(0) scaleX(1); } }
-        @keyframes flyLeftWavy { 0% { transform: translateX(110vw) translateY(0) scaleX(-1); } 50% { transform: translateX(50vw) translateY(0) scaleX(-1); } 100% { transform: translateX(-10vw) translateY(0) scaleX(-1); } }
-
+        
         /* Night */
         body.night-mode .bg-night { opacity: 1; }
         body.night-mode { color: #f0f0f0; } 
@@ -60,11 +83,20 @@
         .mixed-floater { position: absolute; bottom: -50px; animation: floatUpMixed linear infinite; will-change: transform, opacity; z-index: -1; }
         @keyframes floatUpMixed { 0% { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 0; } 20% { opacity: 0.8; } 80% { opacity: 0.6; } 100% { transform: translateY(-110vh) rotate(360deg) scale(1); opacity: 0; } }
 
+        /* Birds */
+        .bird-final { position: absolute; font-size: 24px; z-index: -1; will-change: transform; top: var(--startY); }
+        @keyframes flyRightWavy { 0% { transform: translateX(-10vw) translateY(0) scaleX(1); } 50% { transform: translateX(60vw) translateY(0) scaleX(1); } 100% { transform: translateX(120vw) translateY(0) scaleX(1); } }
+        @keyframes flyLeftWavy { 0% { transform: translateX(110vw) translateY(0) scaleX(-1); } 50% { transform: translateX(50vw) translateY(0) scaleX(-1); } 100% { transform: translateX(-10vw) translateY(0) scaleX(-1); } }
+
         canvas#particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
 
         /* --- 3. UI ANIMATIONS --- */
         .reveal-element { opacity: 0; transform: translateY(30px) scale(0.95); filter: blur(5px); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .reveal-element.visible { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+
+        /* Typewriter Cursor */
+        .typing-cursor::after { content: '|'; animation: blink 1s infinite; color: var(--primary-dark); margin-left: 2px; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         /* --- 4. LAYOUT & CARDS --- */
         .container { max-width: 550px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
@@ -84,14 +116,15 @@
         /* Soft Buttons */
         .btn {
             font-family: var(--font-head); background: var(--primary-grad); color: #fff; border: none; padding: 18px 30px;
-            border-radius: 50px; font-size: 1.2rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 15px;
+            border-radius: 50px; font-size: 1.2rem; font-weight: 700;
+            cursor: pointer; width: 100%; margin-top: 15px;
             box-shadow: 0 8px 20px rgba(255, 118, 117, 0.4), inset 0 2px 0 rgba(255,255,255,0.4);
             transition: all 0.3s var(--bounce); position: relative; overflow: hidden; transform: scale(1);
         }
         .btn:hover { transform: scale(1.05) translateY(-3px); box-shadow: 0 15px 30px rgba(255, 118, 117, 0.6), inset 0 2px 0 rgba(255,255,255,0.4); }
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: white; color: #ff6b81; border: 3px solid #ff9a9e; box-shadow: none; }
-        .btn-locked { background: #e0e0e0 !important; color: #aaa !important; box-shadow: inset 0 2px 0 rgba(255,255,255,0.5) !important; cursor: not-allowed; transform: none !important; }
+        .btn-locked { background: #dcdcdc !important; color: #aaa !important; box-shadow: inset 0 2px 0 rgba(255,255,255,0.5) !important; cursor: not-allowed; transform: none !important; }
 
         .theme-selector { display: flex; gap: 10px; margin-top: 30px; flex-wrap: wrap; }
         .theme-btn { flex: 1 1 30%; padding: 15px 5px; border-radius: 20px; border: none; cursor: pointer; transition: 0.3s; font-family: var(--font-head); font-weight: bold; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -101,7 +134,9 @@
         .theme-btn:hover { transform: translateY(-5px); }
 
         /* Components */
-        .timeline { padding-left: 20px; border-left: 4px dotted rgba(255,255,255,0.8); margin-left: 10px; } .timeline-item::before { content: '❤️'; position: absolute; left: -44px; top: 25px; background: white; border-radius: 50%; padding: 8px; font-size: 1.1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); } .timeline-img { width: 100%; max-height: 350px; object-fit: cover; border-radius: 25px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .timeline { padding-left: 20px; border-left: 4px dotted rgba(255,255,255,0.8); margin-left: 10px; } .timeline-item::before { content: '❤️'; position: absolute; left: -44px; top: 25px; background: white; border-radius: 50%; padding: 8px; font-size: 1.1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); } .timeline-img { width: 100%; max-height: 350px; object-fit: cover; border-radius: 25px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); transition: transform 0.5s ease; }
+        .timeline-img:hover { transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.02); }
+
         .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; } .gallery-item { position: relative; aspect-ratio: 1/1; border-radius: 20px; background: white; padding: 6px; cursor: pointer; transition: 0.4s; box-shadow: 0 5px 15px rgba(0,0,0,0.05); } .gallery-item:hover { transform: scale(1.05); z-index: 5; } .gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; } .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff477e; color: white; width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; }
         .game-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 25px; background: white; border-radius: 30px; margin-bottom: 20px; cursor: pointer; border: 3px solid transparent; transition: 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.05); } .game-menu-item:hover { border-color: #ff9a9e; transform: translateX(5px); } .game-menu-item.completed { background: #e8f5e9; border-color: #2ecc71; } .game-icon { font-size: 3rem; margin-right: 20px; background: #fff5f8; padding: 15px; border-radius: 50%; }
         
@@ -112,43 +147,85 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; } .overlay-box { background: white; width: 85%; max-width: 350px; padding: 40px 30px; border-radius: 40px; text-align: center; box-shadow: 0 25px 70px rgba(0,0,0,0.3); animation: zoomIn 0.4s var(--bounce); } @keyframes zoomIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } } .inst-icon { font-size: 4rem; margin-bottom: 15px; } .result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 28px; z-index: 50; padding: 20px; text-align: center; } .result-overlay.show { display: flex; animation: fadeIn 0.5s; }
         .memory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; } .memory-card { aspect-ratio: 1/1; cursor: pointer; perspective: 1000px; } .memory-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: 0.6s; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); } .memory-card.flipped .memory-inner { transform: rotateY(180deg); } .mem-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; display: flex; align-items: center; justify-content: center; } .mem-front { background: var(--secondary-grad); color: white; font-size: 2.5rem; } .mem-back { background: white; transform: rotateY(180deg); padding: 5px; } .mem-back img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; } #rhythm-canvas { width: 100%; height: 350px; background: rgba(255,255,255,0.6); border-radius: 25px; position: relative; overflow: hidden; border: 3px solid white; box-shadow: inset 0 0 20px rgba(0,0,0,0.05); } .falling-heart { position: absolute; font-size: 3rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)); } .hit-feedback { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 3.5rem; font-weight: 800; pointer-events: none; opacity: 0; text-shadow: 0 3px 10px rgba(0,0,0,0.2); } @keyframes popMsg { 0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; } 20% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 80% { transform: translate(-50%,-120%) scale(1); opacity: 1; } 100% { transform: translate(-50%,-150%) scale(0.8); opacity: 0; } } .lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); } .lightbox img { max-width: 95%; max-height: 80vh; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); } .hidden { display: none !important; }
 
-        /* --- 5. NEW FULLSCREEN CARD POPUP --- */
+        /* --- 5. THE SUPER 3D POPUP (FINAL) --- */
         #final-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255, 230, 235, 0.95);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
             z-index: 10000; display: none;
             flex-direction: column; align-items: center; justify-content: center;
+            perspective: 1200px;
         }
-        #final-overlay.show { display: flex; animation: overlayFadeIn 0.5s ease; }
-        @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #final-overlay.show { display: flex; animation: bgFadeIn 0.5s; }
+        @keyframes bgFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .gift-box-trigger {
             font-size: 7rem; cursor: pointer;
             filter: drop-shadow(0 15px 30px rgba(0,0,0,0.2));
-            animation: giftBounce 2s infinite ease-in-out;
-            transition: 0.5s;
+            animation: giftShake 2.5s infinite ease-in-out;
+            transition: 0.3s;
         }
-        .gift-box-trigger:hover { transform: scale(1.1) rotate(5deg); }
-        @keyframes giftBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .gift-box-trigger:hover { transform: scale(1.1); }
+        @keyframes giftShake { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
 
         .final-card-popup {
-            background: white; width: 90%; max-width: 350px;
-            border-radius: 30px; padding: 40px 30px;
+            background: #fff; width: 90%; max-width: 360px;
+            border-radius: 35px; padding: 40px 30px;
             text-align: center;
-            box-shadow: 0 30px 80px rgba(255, 107, 129, 0.4);
-            transform: scale(0); opacity: 0;
-            transition: 0.8s var(--bounce);
-            border: 4px solid #ff9a9e;
+            box-shadow: 0 40px 100px rgba(255, 107, 129, 0.5);
+            border: 5px solid #ff9a9e;
             position: relative; overflow: hidden;
+            opacity: 0;
+            transform: translateY(500px) rotateX(60deg) rotateY(180deg) scale(0.2);
         }
-        #final-overlay.show .final-card-popup { transform: scale(1); opacity: 1; }
+
+        .final-card-popup.show {
+            animation: superPopEntry 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards, 
+                       cardFloat 3s 1.2s ease-in-out infinite alternate;
+        }
+
+        @keyframes superPopEntry {
+            0% { opacity: 0; transform: translateY(500px) rotateX(45deg) rotateY(720deg) scale(0.2); }
+            60% { opacity: 1; transform: translateY(-30px) rotateX(0deg) rotateY(0deg) scale(1.05); }
+            80% { transform: translateY(10px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes cardFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-15px); } }
         
-        .cute-gif { width: 150px; margin-bottom: 20px; border-radius: 15px; }
+        .bear-emoji {
+            font-size: 6rem; display: block; margin-bottom: 20px;
+            animation: bearBreath 3s ease-in-out infinite;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        }
+        @keyframes bearBreath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* TOAST */
+        .toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: rgba(50, 50, 50, 0.9); color: white; padding: 12px 24px; border-radius: 50px;
+            font-size: 0.9rem; z-index: 12000; opacity: 0; transition: 0.3s; pointer-events: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        
+        /* CLICK PARTICLES */
+        .click-heart {
+            position: fixed; pointer-events: none; font-size: 1.5rem;
+            animation: floatUpFade 1s forwards; z-index: 9999;
+        }
+        @keyframes floatUpFade {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
         
     </style>
 </head>
 <body class="pastel-mode"> 
+
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+    <div id="page-transition"></div>
 
     <div class="bg-scene bg-morning">
         <div class="sun-container"><div class="sun"></div></div>
@@ -171,26 +248,30 @@
     </div>
 
     <div id="final-overlay">
-        <div class="final-card-popup">
-            <img src="https://media.giphy.com/media/CT5Ye7uVJLFtu/giphy.gif" alt="Cute Bear" class="cute-gif">
+        <div id="card-popup" class="final-card-popup">
+            <div class="bear-emoji">🧸</div>
             <h2 style="color:#ff6b81; margin-bottom:15px;">ถึง... เมย์คนเก่ง 💖</h2>
-            <div id="popup-text" style="font-size:1rem; line-height:1.8; color:#555; font-weight:600;"></div>
-            <button class="btn" onclick="navigateTo('page-intro')" style="margin-top:30px;">เล่นอีกครั้ง ↺</button>
+            <div id="popup-text" style="font-size:1.1rem; line-height:1.8; color:#555; font-weight:600; min-height:100px;"></div>
+            <button class="btn" onclick="saveToHeart()" style="margin-top:20px;">บันทึกไว้ในใจ ❤️</button>
             <button class="btn btn-outline" onclick="closeGift()" style="margin-top:10px; font-size:0.9rem; padding:10px;">ปิดหน้านี้</button>
         </div>
     </div>
 
+    <div id="toast" class="toast">ข้อความแจ้งเตือน</div>
+
     <div id="app" class="container">
 
         <section id="page-intro" class="page active">
-            <div style="min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+            <div style="min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
                 <span style="font-size: 7rem; text-shadow: 0 10px 40px rgba(255,100,100,0.4); animation: float 3s infinite;">🎁</span>
                 <h1 id="intro-title" class="reveal-element" style="margin-top: 30px; line-height: 1.5; font-size: 2.8rem;">เซอร์ไพรส์นะเมย์! 💖</h1>
-                <p class="reveal-element" style="font-size: 1.2rem; text-shadow: 0 2px 5px rgba(255,255,255,0.5); color: var(--primary-dark);">เลือกบรรยากาศที่ชอบก่อนเริ่มนะ</p>
+                <p id="greeting-text" class="reveal-element" style="font-size: 1.2rem; margin-bottom:5px; color:var(--primary-dark); font-weight:bold;"></p>
+                <p class="reveal-element" style="font-size: 1rem; color:#666;">เว็บนี้ไม่มีปุ่มข้ามนะ… อยากให้เมย์ดูทุกหน้า 🥺</p>
+                
                 <div class="theme-selector reveal-element">
-                    <button class="theme-btn btn-morning" onclick="setTheme('morning')">🌞 เช้าสดใส</button>
-                    <button class="theme-btn btn-night" onclick="setTheme('night')">🌌 คืนอวกาศ</button>
-                    <button class="theme-btn btn-pastel" onclick="setTheme('pastel')">🌸 ชมพูหวาน</button>
+                    <button class="theme-btn btn-morning" onclick="setTheme('morning', true)">🌞 เช้าสดใส</button>
+                    <button class="theme-btn btn-night" onclick="setTheme('night', true)">🌌 คืนอวกาศ</button>
+                    <button class="theme-btn btn-pastel" onclick="setTheme('pastel', true)">🌸 ชมพูหวาน</button>
                 </div>
             </div>
         </section>
@@ -223,6 +304,9 @@
             </div>
             <div class="card reveal-element">
                 <h3>📂 อัปรูปเพิ่ม (ในเครื่องนี้)</h3>
+                <p style="font-size: 0.8rem; color: #888; margin-top: -10px; margin-bottom: 15px;">
+                    <i class="fas fa-lock"></i> สบายใจได้นะ รูปเก็บในเครื่องนี้เครื่องเดียว ไม่หลุดไปไหนแน่นอน
+                </p>
                 <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(this)" style="margin: 10px 0;">
                 <div class="gallery-grid" id="gallery-container"></div>
             </div>
@@ -304,11 +388,12 @@
             <div style="min-height:80vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">
                 <h2 class="reveal-element" style="margin-bottom:40px;">ส่งถึง... เมย์คนเก่ง 💖</h2>
                 
-                <div class="gift-box-trigger reveal-element" onclick="openGift()">🎁</div>
-                <p class="click-hint reveal-element" style="color:var(--primary-dark); margin-top:20px;">แตะกล่องของขวัญเลย!</p>
+                <div id="gift-box" class="gift-box-trigger reveal-element" onclick="openGift()">🎁</div>
+                <p class="click-hint reveal-element" style="color:var(--primary-dark); margin-top:20px;">แตะกล่องของขวัญเลย! (เปิดของขวัญเลย 🎁)</p>
 
-                <div style="margin-top:50px; width:100%; max-width:300px;">
+                <div style="margin-top:50px; width:100%; max-width:300px; text-align:center;">
                     <button class="btn btn-outline reveal-element" onclick="navigateTo('page-settings')" style="margin-top:10px;">ตั้งค่า ⚙️</button>
+                    <p style="font-size:0.8rem; color:#888; margin-top:15px;">อัปเดตล่าสุด: มกราคม 2026</p>
                 </div>
             </div>
         </section>
@@ -317,6 +402,9 @@
             <h2>⚙️ ตั้งค่า</h2>
             <div class="card">
                 <p>เปลี่ยนเพลง:</p> <input type="file" accept=".mp3" onchange="changeMusic(this)">
+                <p style="font-size: 0.8rem; color: #aaa; margin-top: 5px;">
+                    * ข้อมูลการเล่นเกมและรูปภาพ อยู่กับเมย์คนเดียวนะครับ
+                </p>
                 <br><br>
                 <button class="btn btn-outline" onclick="clearData()" style="color:red; border-color:red;">ล้างข้อมูลรูปทั้งหมด</button>
             </div>
@@ -338,12 +426,22 @@
     <div id="lightbox" class="lightbox" onclick="if(event.target===this) this.style.display='none'"><img id="lightbox-img" src=""></div>
 
     <script>
-        // --- DATA ---
+        // --- DATA & STATE ---
         const audio = document.getElementById('bg-music');
-        let isPlaying = false, currentTheme = 'pastel';
-        let gameStatus = { memory: false, rhythm: false };
-        let galleryUnlocked = false;
+        let isPlaying = false;
+        
+        // Emotional State Variables
+        let visitCount = parseInt(localStorage.getItem('may_visit_count')) || 0;
+        let themeCycleCount = new Set(); 
+        let pauseCount = 0; 
+        let boxClickCount = 0;
 
+        // Load State
+        let currentTheme = localStorage.getItem('may_theme') || 'pastel';
+        let gameStatus = JSON.parse(localStorage.getItem('may_games')) || { memory: false, rhythm: false };
+        let galleryUnlocked = localStorage.getItem('may_gallery_unlocked') === 'true';
+        let localImages = JSON.parse(localStorage.getItem('may_gallery')) || [];
+        
         const instructions = {
             'page-timeline': { icon: '⏳', title: 'ย้อนเวลา', text: 'ค่อยๆ เลื่อนดูเรื่องราวของเราตั้งแต่วันแรกนะ' },
             'page-gallery': { icon: '📸', title: 'แกลเลอรี่', text: 'ต้องกดที่รูปเพื่อดูรูปใหญ่ก่อน 1 ครั้ง ถึงจะไปต่อได้นะ!' },
@@ -354,91 +452,322 @@
             'page-message': { icon: '💌', title: 'ความในใจ', text: 'ของขวัญชิ้นสุดท้าย...' }
         };
 
+        // --- INIT & LOADING ---
+        window.onload = () => {
+            visitCount++;
+            localStorage.setItem('may_visit_count', visitCount);
+
+            // Theme & Ambient
+            document.body.className = currentTheme + '-mode';
+            document.querySelectorAll('.bird-final, .shooting-star-v3, .mixed-floater').forEach(e => e.remove());
+            
+            const h = new Date().getHours();
+            if(currentTheme === 'morning') spawnBirdsFinal(h >= 6 && h <= 9 ? 1500 : 3000);
+            else if(currentTheme === 'night') spawnShootingStarsV3(h >= 22 || h <= 4 ? 1200 : 2500);
+            else if(currentTheme === 'pastel') spawnPastelMixed();
+
+            loadGallery();
+            typeWriter("เค้ามีเซอร์ไพรส์เล็กๆ มาฝาก 💖", "intro-title", 80);
+            animatePageText(); 
+            initParticles();
+            
+            setEmotionalGreeting(); 
+            
+            if (galleryUnlocked) updateGalleryButton();
+            
+            // Listeners
+            document.addEventListener('mousemove', (e) => {
+                const sun = document.querySelector('.sun');
+                if(sun) {
+                    const x = (window.innerWidth - e.pageX*2) / 100;
+                    const y = (window.innerHeight - e.pageY*2) / 100;
+                    sun.style.transform = `translate(${x}px, ${y}px) scale(1)`;
+                }
+            });
+            document.addEventListener('click', (e) => { createClickHeart(e.pageX, e.pageY); });
+
+            // Toast for returning visitor
+            setTimeout(() => {
+                if(visitCount === 3) showToast("เมย์กลับมาอีกแล้ว เค้าดีใจนะ 🥹");
+                else if(visitCount > 10) showToast("คิดถึงเค้าเหรอ เข้ามาบ่อยจัง 😜");
+            }, 2500);
+        };
+
+        // --- EMOTIONAL GREETING ---
+        function setEmotionalGreeting() {
+            const h = new Date().getHours();
+            let g = "สวัสดีครับคนเก่ง 💖";
+            
+            if(h >= 5 && h < 11) g = "อรุณสวัสดิ์นะเมย์ ☀️ วันนี้ยิ้มเยอะๆ นะ";
+            else if(h >= 11 && h < 13) g = "เที่ยงแล้ว อย่าลืมหาอะไรอร่อยๆ กินนะ 🍱";
+            else if(h >= 13 && h < 17) g = "บ่ายๆ ง่วงไหม? สู้ๆ นะคนเก่ง ✌️";
+            else if(h >= 17 && h < 20) g = "วันนี้เหนื่อยไหม? พักผ่อนได้แล้วนะ 🌇";
+            else if(h >= 20 || h < 2) g = "ดึกแล้ว พักผ่อนด้วยนะ เค้าเป็นห่วง 🌙";
+            else g = "นอนดึกจัง... ฝันดีนะครับ 💤";
+
+            document.getElementById('greeting-text').innerText = g;
+        }
+
         // --- THEME ---
-        function setTheme(theme) {
-            currentTheme = theme; document.body.className = theme + '-mode';
+        function setTheme(theme, autoNav = false) {
+            currentTheme = theme; 
+            localStorage.setItem('may_theme', theme); 
+            document.body.className = theme + '-mode';
+            
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active-theme'));
+            
+            if(autoNav) {
+                themeCycleCount.add(theme);
+                if(themeCycleCount.size === 3) {
+                    setTimeout(() => showToast("เมย์ลองครบทุกอารมณ์เลย 🩷 ชอบอันไหนสุด?"), 1000);
+                    themeCycleCount.clear(); 
+                }
+                
+                let msg = "";
+                if(theme === 'morning') msg = "เช้านี้สดใสเหมือนเมย์เลย 🌞";
+                else if(theme === 'night') msg = "คืนนี้อยู่ด้วยกันสองคนนะ 🌙";
+                else msg = "โหมดหวานแล้ว ระวังเขิน 💕";
+                showToast(msg);
+                startApp();
+            }
+
             document.querySelectorAll('.bird-final, .shooting-star-v3, .mixed-floater').forEach(e => e.remove());
             if(theme === 'morning') spawnBirdsFinal();
             else if(theme === 'night') spawnShootingStarsV3();
             else if(theme === 'pastel') spawnPastelMixed();
-            startApp();
         }
-        function spawnBirdsFinal() { setInterval(() => { if(currentTheme !== 'morning') return; const b = document.createElement('div'); b.className = 'bird-final'; b.innerHTML = Math.random()>0.5 ? '🕊️' : '🐦'; b.style.setProperty('--startY', Math.random()*50+5+'%'); b.style.animation = `fly${Math.random()>0.5?'Right':'Left'}Wavy ${Math.random()*5+15}s linear forwards`; document.querySelector('.bg-morning').appendChild(b); setTimeout(()=>b.remove(), 20000); }, 3000); }
-        function spawnShootingStarsV3() { setInterval(() => { if(currentTheme !== 'night') return; const s = document.createElement('div'); s.className = 'shooting-star-v3'; s.style.setProperty('--startX', (Math.random()*40-50)+'%'); s.style.setProperty('--startY', (Math.random()*40-50)+'%'); const d = Math.random()*1+2+'s'; s.style.animation = `shootAcrossV3 ${d} ease-in-out forwards`; s.style.transform = `scale(${Math.random()*0.5+0.5})`; s.style.opacity = Math.random()*0.5+0.5; document.querySelector('.bg-night').appendChild(s); setTimeout(()=>s.remove(), parseFloat(d)*1000+200); }, 1800); }
-        function spawnPastelMixed() { const items = ['💖', '✨', '⚪', '🌸']; setInterval(() => { if(currentTheme !== 'pastel') return; const b = document.createElement('div'); b.className = 'mixed-floater'; const item = items[Math.floor(Math.random()*items.length)]; if(item==='⚪'){b.style.width=(Math.random()*20+10)+'px';b.style.height=b.style.width;b.style.background='rgba(255,255,255,0.5)';b.style.borderRadius='50%';}else{b.innerHTML=item;b.style.fontSize=(Math.random()*20+15)+'px';} b.style.left=Math.random()*100+'%'; b.style.animationDuration=Math.random()*10+15+'s'; document.querySelector('.bg-pastel').appendChild(b); setTimeout(()=>b.remove(), 25000); }, 1200); }
 
-        window.onload = () => {
-            document.body.classList.add('pastel-mode'); spawnPastelMixed(); loadGallery();
-            typeWriter("เค้ามีเซอร์ไพรส์เล็กๆ มาฝาก 💖", "intro-title", 80);
-            animatePageText(); initParticles();
-        };
+        // Scene Logic
+        function spawnBirdsFinal(interval=3000) { setInterval(() => { if(currentTheme !== 'morning') return; const b = document.createElement('div'); b.className = 'bird-final'; b.innerHTML = Math.random()>0.5 ? '🕊️' : '🐦'; b.style.setProperty('--startY', Math.random()*50+5+'%'); b.style.animation = `fly${Math.random()>0.5?'Right':'Left'}Wavy ${Math.random()*5+15}s linear forwards`; document.querySelector('.bg-morning').appendChild(b); setTimeout(()=>b.remove(), 20000); }, interval); }
+        function spawnShootingStarsV3(interval=1800) { setInterval(() => { if(currentTheme !== 'night') return; const s = document.createElement('div'); s.className = 'shooting-star-v3'; s.style.setProperty('--startX', (Math.random()*40-50)+'%'); s.style.setProperty('--startY', (Math.random()*40-50)+'%'); const d = Math.random()*1+2+'s'; s.style.animation = `shootAcrossV3 ${d} ease-in-out forwards`; s.style.transform = `scale(${Math.random()*0.5+0.5})`; s.style.opacity = Math.random()*0.5+0.5; document.querySelector('.bg-night').appendChild(s); setTimeout(()=>s.remove(), parseFloat(d)*1000+200); }, interval); }
+        function spawnPastelMixed() { const items = ['💖', '✨', '⚪', '🌸']; setInterval(() => { if(currentTheme !== 'pastel') return; const b = document.createElement('div'); b.className = 'mixed-floater'; const item = items[Math.floor(Math.random()*items.length)]; if(item==='⚪'){b.style.width=(Math.random()*20+10)+'px';b.style.height=b.style.width;b.style.background='rgba(255,255,255,0.5)';b.style.borderRadius='50%';}else{b.innerHTML=item;b.style.fontSize=(Math.random()*20+15)+'px';} b.style.left=Math.random()*100+'%'; b.style.animationDuration=Math.random()*10+15+'s'; document.querySelector('.bg-pastel').appendChild(b); setTimeout(()=>b.remove(), 25000); }, 1200); }
 
         // --- ANIMATIONS ---
         function animatePageText() { const els = document.querySelectorAll('.page.active .reveal-element'); els.forEach((el, i) => { el.classList.remove('visible'); setTimeout(() => el.classList.add('visible'), i*200+300); }); }
-        function typeWriter(txt, id, spd) { let i = 0; document.getElementById(id).innerHTML = ""; function type() { if(i<txt.length) { document.getElementById(id).innerHTML += txt.charAt(i); i++; setTimeout(type, spd); } } type(); }
+        function typeWriter(txt, id, spd) { let i = 0; document.getElementById(id).innerHTML = `<span class="typing-cursor"></span>`; function type() { if(i<txt.length) { document.getElementById(id).innerHTML = txt.substring(0, i+1) + `<span class="typing-cursor"></span>`; i++; setTimeout(type, spd); } } type(); }
 
         // --- NAVIGATION ---
         function startApp() { initAudio(); navigateTo('page-timeline'); }
         function navigateTo(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0);
-            if(instructions[id]) showInstruction(instructions[id]); animatePageText();
-            if(id === 'page-game-menu') updateGameMenuUI(); if(id === 'page-game-memory') document.getElementById('memory-start-overlay').style.display = 'flex'; if(id === 'page-game-rhythm') initRhythmGame();
+            const trans = document.getElementById('page-transition');
+            trans.classList.add('active');
+            
+            setTimeout(() => {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+                document.getElementById(id).classList.add('active'); 
+                window.scrollTo(0,0);
+                trans.classList.remove('active');
+                
+                if(instructions[id]) showInstruction(instructions[id]); 
+                animatePageText();
+                
+                if(id === 'page-message') closeGift();
+                if(id === 'page-game-menu') updateGameMenuUI(); 
+                if(id === 'page-game-memory') document.getElementById('memory-start-overlay').style.display = 'flex'; 
+                if(id === 'page-game-rhythm') initRhythmGame();
+            }, 500);
         }
         function showInstruction(d) { document.getElementById('inst-icon').innerText=d.icon; document.getElementById('inst-title').innerText=d.title; document.getElementById('inst-text').innerText=d.text; document.getElementById('instruction-modal').style.display='flex'; }
         function closeInstruction() { document.getElementById('instruction-modal').style.display='none'; }
 
         // --- AUDIO ---
-        function initAudio() { audio.volume=0.5; audio.play().then(()=>{isPlaying=true;updatePlayerUI();}).catch(()=>{}); }
-        function togglePlay() { if(audio.paused){audio.play();isPlaying=true;}else{audio.pause();isPlaying=false;} updatePlayerUI(); }
-        function updatePlayerUI() { const i=document.getElementById('play-icon'), d=document.getElementById('album-art'), v=document.getElementById('visualizer'); if(isPlaying){i.className='fas fa-pause';d.classList.add('playing');v.classList.remove('stopped');}else{i.className='fas fa-play';d.classList.remove('playing');v.classList.add('stopped');} }
+        function initAudio() { audio.volume=0.5; audio.play().then(()=>{isPlaying=true;updatePlayerUI(); localStorage.setItem('may_music_played', 'true');}).catch(()=>{}); }
+        function togglePlay() { 
+            if(audio.paused){
+                audio.play(); 
+                isPlaying=true;
+            } else {
+                audio.pause(); 
+                isPlaying=false;
+                pauseCount++;
+                if(pauseCount === 3) showToast("เพลงนี้... ทำให้คิดถึงใครหรือเปล่า? 🤭");
+            } 
+            updatePlayerUI(); 
+        }
+        function updatePlayerUI() { const i=document.getElementById('play-icon'), d=document.getElementById('album-art'), v=document.getElementById('visualizer'), n=document.createElement('div'); if(isPlaying){i.className='fas fa-pause';d.classList.add('playing');v.classList.remove('stopped'); n.className='music-note'; n.innerHTML='🎵'; n.style.left=(Math.random()*50+20)+'%'; n.style.bottom='50px'; document.querySelector('.music-player').appendChild(n); setTimeout(()=>n.remove(),1500);}else{i.className='fas fa-play';d.classList.remove('playing');v.classList.add('stopped');} }
         function changeMusic(inp) { if(inp.files[0]){audio.src=URL.createObjectURL(inp.files[0]); document.getElementById('track-name').innerText=inp.files[0].name; audio.play(); isPlaying=true; updatePlayerUI();} }
 
         // --- GALLERY ---
-        const cloudImages = [{src:"https://github.com/Rvenhub/i-love-u/blob/main/6.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/5.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/4.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/3.jpg?raw=true"}]; let localImages = [];
-        function loadGallery() { const s=localStorage.getItem('may_gallery'); if(s)localImages=JSON.parse(s); renderGallery(); }
+        const cloudImages = [{src:"https://github.com/Rvenhub/i-love-u/blob/main/6.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/5.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/4.jpg?raw=true"},{src:"https://github.com/Rvenhub/i-love-u/blob/main/3.jpg?raw=true"}]; 
+        function loadGallery() { renderGallery(); }
         function renderGallery() { const c=document.getElementById('gallery-container'); c.innerHTML=''; localImages.forEach((img,i)=>c.innerHTML+=`<div class="gallery-item"><img src="${img.src}" onclick="openLightbox('${img.src}')"><button class="delete-btn" onclick="deleteImg(${i})">x</button></div>`); cloudImages.forEach(img=>c.innerHTML+=`<div class="gallery-item"><img src="${img.src}" onclick="openLightbox('${img.src}')"></div>`); }
-        function handleImageUpload(inp) { if(inp.files[0]){const r=new FileReader(); r.onload=function(e){localImages.unshift({src:e.target.result}); localStorage.setItem('may_gallery',JSON.stringify(localImages)); renderGallery();}; r.readAsDataURL(inp.files[0]);}}
+        function handleImageUpload(inp) { 
+            if(inp.files[0]){
+                const r=new FileReader(); 
+                r.onload=function(e){
+                    localImages.unshift({src:e.target.result}); 
+                    localStorage.setItem('may_gallery',JSON.stringify(localImages)); 
+                    renderGallery();
+                    showToast("อัปโหลดแล้ว! เดี๋ยวรูปจะขึ้นในแกลเลอรี่นะ ❤️");
+                }; 
+                r.readAsDataURL(inp.files[0]);
+            }
+        }
         function deleteImg(i) { if(confirm("ลบ?")){localImages.splice(i,1); localStorage.setItem('may_gallery',JSON.stringify(localImages)); renderGallery();}}
-        function clearData() { if(confirm("ลบหมด?")){localStorage.removeItem('may_gallery'); location.reload();}}
-        function openLightbox(src) { document.getElementById('lightbox-img').src=src; document.getElementById('lightbox').style.display='flex'; if(!galleryUnlocked){galleryUnlocked=true; const b=document.getElementById('gallery-next-btn'); b.classList.remove('btn-locked'); b.innerText="ไปเล่นเกมกัน! 🎮"; b.onclick=()=>navigateTo('page-game-menu');}}
+        function clearData() { if(confirm("ลบหมด?")){localStorage.clear(); location.reload();}}
+        function openLightbox(src) { document.getElementById('lightbox-img').src=src; document.getElementById('lightbox').style.display='flex'; if(!galleryUnlocked){unlockGallery();}}
+        function unlockGallery() { galleryUnlocked=true; localStorage.setItem('may_gallery_unlocked', 'true'); updateGalleryButton(); showToast("เก่งมาก! ไปด่านต่อไปกันเล้ย 🎮"); }
+        function updateGalleryButton() { const b=document.getElementById('gallery-next-btn'); b.classList.remove('btn-locked'); b.innerText="ไปเล่นเกมกัน! 🎮"; b.onclick=()=>navigateTo('page-game-menu'); }
 
         // --- GAMES ---
         function updateGameMenuUI() { if(gameStatus.memory)document.getElementById('menu-memory').classList.add('completed'); if(gameStatus.rhythm)document.getElementById('menu-rhythm').classList.add('completed'); if(gameStatus.memory&&gameStatus.rhythm){const b=document.getElementById('hub-next-btn'); b.classList.remove('btn-locked'); b.innerText="ผ่านครบแล้ว! ไปวัดใจกัน 👉"; b.onclick=()=>navigateTo('page-quiz');}}
-        function finishGame(game) { gameStatus[game]=true; navigateTo('page-game-menu'); }
+        function finishGame(game) { gameStatus[game]=true; localStorage.setItem('may_games', JSON.stringify(gameStatus)); showToast("เก่งมาก! ผ่านด่านแล้ว 🎉"); navigateTo('page-game-menu'); }
         function checkAllGames() { if(!gameStatus.memory||!gameStatus.rhythm)alert("ต้องชนะทั้ง 2 เกมก่อนน้าา 🥺"); }
 
-        // Game 1
-        let flipped=[], matches=0; function startMemoryGameReal(){document.getElementById('memory-start-overlay').style.display='none'; initMemoryGame();}
+        // Game 1: Memory (With Emotional Feedback)
+        let flipped=[], matches=0; 
+        function startMemoryGameReal(){document.getElementById('memory-start-overlay').style.display='none'; initMemoryGame();}
         function initMemoryGame() { const b=document.getElementById('memory-board'); b.innerHTML=''; flipped=[]; matches=0; document.getElementById('memory-result').style.display='none'; let imgs=[...cloudImages]; while(imgs.length<6)imgs=imgs.concat(cloudImages); imgs=imgs.slice(0,6); let deck=[...imgs,...imgs].sort(()=>0.5-Math.random()); deck.forEach(img=>{const c=document.createElement('div'); c.className='memory-card'; c.innerHTML=`<div class="memory-inner"><div class="mem-face mem-front">🧸</div><div class="mem-face mem-back"><img src="${img.src}"></div></div>`; c.onclick=()=>{if(flipped.length<2&&!c.classList.contains('flipped')){c.classList.add('flipped'); flipped.push({el:c,src:img.src}); if(flipped.length===2)checkMemMatch();}}; b.appendChild(c);}); }
-        function checkMemMatch() { const [c1,c2]=flipped; if(c1.src===c2.src){matches++; flipped=[]; if(matches===6)setTimeout(()=>document.getElementById('memory-result').style.display='flex',500);}else{setTimeout(()=>{c1.el.classList.remove('flipped'); c2.el.classList.remove('flipped'); flipped=[];},800);} }
+        
+        function checkMemMatch() { 
+            const [c1,c2] = flipped; 
+            if(c1.src === c2.src){
+                matches++; 
+                flipped=[]; 
+                const compliments = ["เก่งมาก!", "ความจำดีจัง", "เยี่ยมเลย!", "ใช่เลย!"];
+                showToast(compliments[Math.floor(Math.random()*compliments.length)] + " 👍");
+                
+                if(matches === 6) setTimeout(() => document.getElementById('memory-result').style.display='flex', 500);
+            } else {
+                showToast("ไม่เป็นไร ลองใหม่นะ ✌️");
+                setTimeout(()=>{
+                    c1.el.classList.remove('flipped'); 
+                    c2.el.classList.remove('flipped'); 
+                    flipped=[];
+                }, 800);
+            } 
+        }
 
-        // Game 2
-        let rScore=0, rCount=0, rInterval, isRPlaying=false; function initRhythmGame(){isRPlaying=false; clearInterval(rInterval); document.getElementById('rhythm-start-btn').classList.remove('hidden'); document.getElementById('rhythm-result').style.display='none'; document.querySelectorAll('.falling-heart').forEach(e=>e.remove()); document.getElementById('heart-count').innerText="0/20"; document.getElementById('rhythm-btn').disabled=true;}
+        // Game 2: Rhythm (With Emotional Feedback)
+        let rScore=0, rCount=0, rInterval, isRPlaying=false; 
+        function initRhythmGame(){isRPlaying=false; clearInterval(rInterval); document.getElementById('rhythm-start-btn').classList.remove('hidden'); document.getElementById('rhythm-result').style.display='none'; document.querySelectorAll('.falling-heart').forEach(e=>e.remove()); document.getElementById('heart-count').innerText="0/20"; document.getElementById('rhythm-btn').disabled=true;}
         function startGameRhythm(){initRhythmGame(); isRPlaying=true; rScore=0; rCount=0; document.getElementById('rhythm-start-btn').classList.add('hidden'); document.getElementById('rhythm-btn').disabled=false; let spawned=0; rInterval=setInterval(()=>{if(!isRPlaying)return; if(spawned<20){spawnHeart(); spawned++;}else{clearInterval(rInterval);}},1000); document.getElementById('rhythm-btn').onclick=checkRhythmHit;}
-        function spawnHeart(){const h=document.createElement('div'); h.className='falling-heart'; h.innerHTML=currentTheme==='night'?'⭐':'❤️'; h.style.left=Math.random()*80+10+'%'; h.style.top='-50px'; document.getElementById('rhythm-canvas').appendChild(h); let pos=-50, fall=setInterval(()=>{if(!isRPlaying){clearInterval(fall);h.remove();return;} pos+=4; h.style.top=pos+'px'; if(pos>320){clearInterval(fall);h.remove();showFeedback("MISS","#ccc");checkRhythmEnd();}},20); h.dataset.timer=fall;}
-        function checkRhythmHit(){if(!isRPlaying)return; let hit=false; document.querySelectorAll('.falling-heart').forEach(h=>{if(hit)return; let top=parseInt(h.style.top); if(top>200&&top<300){hit=true; clearInterval(h.dataset.timer); h.remove(); rCount++; rScore+=100; document.getElementById('heart-count').innerText=rCount+"/20"; showFeedback("PERFECT!","#ff4d6d"); checkRhythmEnd();}});}
+        
+        function spawnHeart(){
+            const h=document.createElement('div'); h.className='falling-heart'; h.innerHTML=currentTheme==='night'?'⭐':'❤️'; h.style.left=Math.random()*80+10+'%'; h.style.top='-50px'; document.getElementById('rhythm-canvas').appendChild(h); 
+            let pos=-50, fall=setInterval(()=>{
+                if(!isRPlaying){clearInterval(fall);h.remove();return;} 
+                pos+=4; h.style.top=pos+'px'; 
+                if(pos>320){
+                    clearInterval(fall);h.remove();
+                    showFeedback("MISS","#ccc"); 
+                    if(Math.random() > 0.7) showToast("ไม่ต้องรีบนะ เค้าอยู่ตรงนี้ ✌️");
+                    checkRhythmEnd();
+                }
+            },20); h.dataset.timer=fall;
+        }
+
+        function checkRhythmHit(){
+            if(!isRPlaying)return; let hit=false; 
+            document.querySelectorAll('.falling-heart').forEach(h=>{
+                if(hit)return; let top=parseInt(h.style.top); 
+                if(top>200&&top<300){
+                    hit=true; clearInterval(h.dataset.timer); h.remove(); 
+                    rCount++; rScore+=100; document.getElementById('heart-count').innerText=rCount+"/20"; 
+                    showFeedback("PERFECT!","#ff4d6d"); 
+                    if(rCount === 10) showToast("เมย์จับจังหวะหัวใจเค้าเก่งจัง 💓");
+                    checkRhythmEnd();
+                }
+            });
+        }
         function showFeedback(t,c){const e=document.getElementById('hit-msg'); e.innerText=t; e.style.color=c; e.style.animation='none'; e.offsetHeight; e.style.animation='popMsg 0.5s ease-out forwards';}
         function checkRhythmEnd(){if(rCount>=10){document.getElementById('final-score').innerText=rScore; document.getElementById('rhythm-result').style.display='flex'; isRPlaying=false;}}
 
         // Quiz
         const qData=[{q:"เมย์ชอบกินอะไร?",a:["ข้าวต้ม","ขนม","ข้าวผัด","ผลไม้"],c:1},{q:"สีที่ชอบ?",a:["ชมพู","ม่วง","ขาว","เขียว"],c:0},{q:"เดทแรก?",a:["คาเฟ่แมว","โรงหนัง","สวน","ห้าง"],c:0},{q:"สัตว์เลี้ยง?",a:["แมว","หมา","นก","ปลา"],c:0}]; let qIdx=0;
         function nextQuestion(){if(qIdx>=qData.length)return; const d=qData[qIdx]; document.getElementById('quiz-progress').innerHTML=qData.map((_,i)=>`<div class="progress-dot ${i===qIdx?'active':''} ${i<qIdx?'done':''}"></div>`).join(''); document.getElementById('quiz-container').innerHTML=`<h3 style="margin-bottom:20px;">${qIdx+1}. ${d.q}</h3>${d.a.map((ans,i)=>`<div class="quiz-option" onclick="checkQuiz(${i}, this)">${ans}</div>`).join('')}`; document.getElementById('quiz-feedback').innerText=""; document.getElementById('quiz-next-btn').classList.add('hidden');}
-        function checkQuiz(i,el){if(i===qData[qIdx].c){document.querySelectorAll('.quiz-option').forEach(o=>o.style.pointerEvents='none'); el.classList.add('correct'); document.getElementById('quiz-feedback').innerText="เก่งมาก! 💕"; qIdx++; confettiEffect(); if(qIdx<qData.length)document.getElementById('quiz-next-btn').classList.remove('hidden'); else document.getElementById('quiz-finish-btn').classList.remove('hidden');}else{el.classList.add('wrong'); document.getElementById('quiz-feedback').innerText="ผิดนะจ๊ะ ลองใหม่! 😜"; setTimeout(()=>{el.classList.remove('wrong'); document.getElementById('quiz-feedback').innerText="";},800);}} nextQuestion();
+        function checkQuiz(i,el){
+            if(i===qData[qIdx].c){
+                document.querySelectorAll('.quiz-option').forEach(o=>o.style.pointerEvents='none'); el.classList.add('correct'); document.getElementById('quiz-feedback').innerText="เก่งมาก! 💕"; qIdx++; confettiEffect(); 
+                if(qIdx<qData.length)document.getElementById('quiz-next-btn').classList.remove('hidden'); 
+                else document.getElementById('quiz-finish-btn').classList.remove('hidden');
+            }else{
+                el.classList.add('wrong'); document.getElementById('quiz-feedback').innerText="ผิดนะจ๊ะ ลองใหม่! 😜"; 
+                showToast("ผิดไม่เป็นไร ลองใหม่น้า 🥺");
+                setTimeout(()=>{el.classList.remove('wrong'); document.getElementById('quiz-feedback').innerText="";},800);
+            }
+        } nextQuestion();
 
-        // --- NEW GIFT LOGIC ---
+        // --- SUPER GIFT BOX ---
         function openGift() { 
+            boxClickCount++;
+            
+            if(boxClickCount > 7) {
+                showToast("ใจร้อนจัง... งั้นเอาเวอร์ชันพิเศษไปเลย! 🌹");
+                openGiftSecret();
+                return;
+            }
+
             document.getElementById('final-overlay').classList.add('show');
-            document.getElementById('popup-text').innerHTML = `ขอบคุณที่เล่นจนจบนะ...<br>อยากบอกว่า 'รัก' คำเดียวอาจไม่พอ<br>สำหรับทุกอย่างที่เมย์ทำให้เค้า<br>ดีใจที่มีเมย์อยู่ในชีวิตนะ 💖<br>อยู่ด้วยกันไปนานๆ นะคะ`;
+            document.getElementById('card-popup').classList.add('show');
+            
+            const textContainer = document.getElementById('popup-text'); 
+            textContainer.innerHTML = ""; 
+            
+            const script = [
+                { text: "ขอบคุณที่เล่นจนจบนะ...", delay: 50 },
+                { text: "<br>...", delay: 800 },
+                { text: "<br>อยากบอกว่า 'รัก' คำเดียวอาจไม่พอ", delay: 50 },
+                { text: "<br>สำหรับทุกอย่างที่เมย์ทำให้เค้า", delay: 50 },
+                { text: "<br>ดีใจที่มีเมย์อยู่ในชีวิตนะ 💖", delay: 100 },
+                { text: "<br><br>อยู่ด้วยกันไปนานๆ นะคะคนเก่ง", delay: 100 }
+            ];
+            
+            runTypewriterScript(textContainer, script);
             confettiEffect();
         }
-        function closeGift() {
-            document.getElementById('final-overlay').classList.remove('show');
+
+        function openGiftSecret() {
+            document.getElementById('final-overlay').classList.add('show');
+            document.getElementById('card-popup').classList.add('show');
+            const textContainer = document.getElementById('popup-text'); 
+            textContainer.innerHTML = ""; 
+
+            const script = [
+                { text: "โอเคๆ ยอมแพ้แล้ว 😳", delay: 50 },
+                { text: "<br>เห็นความพยายามกดรัวๆ แล้ว...", delay: 50 },
+                { text: "<br>เค้ารักเมย์มากๆๆๆๆ ที่สุดในโลกเลย!", delay: 30 },
+                { text: "<br>ห้ามทิ้งเค้าไปไหนนะ ❤️", delay: 100 }
+            ];
+            runTypewriterScript(textContainer, script);
+            confettiEffect();
         }
+
+        async function runTypewriterScript(container, lines) {
+            for (let line of lines) {
+                await new Promise(resolve => {
+                    let i = 0;
+                    if(line.text.startsWith('<')) {
+                        container.innerHTML += line.text;
+                        setTimeout(resolve, line.delay);
+                    } else {
+                        const timer = setInterval(() => {
+                            container.innerHTML += line.text.charAt(i);
+                            i++;
+                            if (i >= line.text.length) {
+                                clearInterval(timer);
+                                setTimeout(resolve, 300);
+                            }
+                        }, line.delay);
+                    }
+                });
+            }
+        }
+
+        function closeGift() { document.getElementById('final-overlay').classList.remove('show'); document.getElementById('card-popup').classList.remove('show'); }
+        function saveToHeart() { showToast("เซฟไว้ดูตอนคิดถึงเรียบร้อย ❤️"); localStorage.setItem('may_gift_opened', 'true'); }
+
+        // --- TOAST & CLICK PARTICLES ---
+        function showToast(text) { const t = document.getElementById('toast'); t.innerText = text; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+        function createClickHeart(x, y) { const h = document.createElement('div'); h.className = 'click-heart'; h.innerHTML = '💖'; h.style.left = x + 'px'; h.style.top = y + 'px'; document.body.appendChild(h); setTimeout(() => h.remove(), 1000); }
 
         // --- PARTICLES ---
         function initParticles() { const c=document.getElementById('particle-canvas'), x=c.getContext('2d'); c.width=window.innerWidth; c.height=window.innerHeight; const p=Array(40).fill().map(()=>({x:Math.random()*c.width, y:Math.random()*c.height, s:Math.random()*2+1, o:Math.random()})); function loop(){x.clearRect(0,0,c.width,c.height); x.fillStyle=currentTheme==='night'?'#ffffff':'#ff7eb3'; p.forEach(o=>{if(currentTheme==='night')o.o+=(Math.random()-0.5)*0.1; if(o.o<0)o.o=0; if(o.o>1)o.o=1; x.globalAlpha=o.o; x.beginPath(); x.arc(o.x, o.y, o.s, 0, Math.PI*2); x.fill();}); requestAnimationFrame(loop);} loop(); }
         function confettiEffect() { for(let i=0; i<30; i++){const c=document.createElement('div'); c.style.position='fixed'; c.style.left=Math.random()*100+'vw'; c.style.top='-10px'; c.style.width='8px'; c.style.height='8px'; c.style.backgroundColor=['#ff0','#0f0','#00f','#ff6b81'][Math.floor(Math.random()*4)]; c.style.zIndex='9999'; c.style.transition='top 1s ease-in'; document.body.appendChild(c); setTimeout(()=>{c.style.top='100vh';},10); setTimeout(()=>{c.remove()},1000);} }
         window.addEventListener('resize', initParticles);
+        
+        // Accessibility
+        document.addEventListener('keydown', function(e) { if(e.key === "Escape") { closeGift(); document.getElementById('lightbox').style.display = 'none'; document.getElementById('instruction-modal').style.display = 'none'; } });
     </script>
 </body>
 </html>
