@@ -271,15 +271,23 @@
         </section>
 
         <section id="page-gallery" class="page">
-            <h2>📷 แกลเลอรี่ของเมย์</h2>
-            <p>คิดถึงเมย์จัง 💕</p>
+            <h2>📷 แกลเลอรี่ของเรา</h2>
+            <p>อัปรูปเพิ่มตรงนี้ เมย์ก็เห็น เบสก็เห็น!</p>
             
-            <div class="card" style="text-align: center; border-style: dashed;">
-                <label for="img-upload" style="cursor: pointer; color: var(--primary);">
-                    <i class="fas fa-cloud-upload-alt"></i> เลือกไฟล์รูปเมย์ (เก็บได้ในเครื่องนี้)
-                </label>
-                <input type="file" id="img-upload" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+            <div class="padlet-embed" style="border:1px solid rgba(0,0,0,0.1);border-radius:15px;box-sizing:border-box;overflow:hidden;position:relative;width:100%;background:#F4F4F4; margin-bottom: 20px;">
+                <p style="padding:0;margin:0">
+                    <iframe src="https://padlet.com/embed/qt81x7v8qsaw7fi5" frameborder="0" allow="camera;microphone;geolocation;display-capture;clipboard-write" style="width:100%;height:608px;display:block;padding:0;margin:0"></iframe>
+                </p>
+                <div style="display:flex;align-items:center;justify-content:end;margin:0;height:28px">
+                    <a href="https://padlet.com?ref=embed" style="display:block;flex-grow:0;margin:0;border:none;padding:0;text-decoration:none" target="_blank">
+                        <div style="display:flex;align-items:center;">
+                            <img src="https://padlet.net/embeds/made_with_padlet_2022.png" width="114" height="28" style="padding:0;margin:0;background:0 0;border:none;box-shadow:none" alt="สร้างขึ้นด้วย Padlet">
+                        </div>
+                    </a>
+                </div>
             </div>
+
+            <p style="text-align: center; color: #888;">--- หรือดูรูปเก่าๆ ที่เบสลงไว้ ---</p>
 
             <div class="gallery-grid" id="gallery-container">
                 </div>
@@ -437,7 +445,7 @@
                 sub.style.opacity = 1;
             });
             initParticles();
-            loadGallery(); // Load Saved Images
+            loadGallery(); 
         };
 
         // --- AUDIO SYSTEM ---
@@ -483,25 +491,16 @@
             }
         }
 
-        // --- GALLERY & PERSISTENCE (LocalStorage) ---
-        // Default images from github
-        const defaultImages = [
+        // --- GALLERY & DATA HANDLING ---
+        // !!! เบสเอารูปลิงก์ GitHub ที่อยากให้เมย์เห็น 100% ใส่ตรงนี้ได้ครับ !!!
+        const cloudImages = [
             { src: "https://github.com/Rvenhub/i-love-u/blob/main/6.jpg?raw=true", cap: "ยิ้มหวาน" },
             { src: "https://github.com/Rvenhub/i-love-u/blob/main/5.jpg?raw=true", cap: "คิดถึงนะ" },
             { src: "https://github.com/Rvenhub/i-love-u/blob/main/4.jpg?raw=true", cap: "น่ารักที่สุด" },
             { src: "https://github.com/Rvenhub/i-love-u/blob/main/3.jpg?raw=true", cap: "แก้มป่อง" }
         ];
 
-        let savedImages = [];
-
         function loadGallery() {
-            // Load from LocalStorage
-            const stored = localStorage.getItem('may_gallery');
-            if (stored) {
-                savedImages = JSON.parse(stored);
-            } else {
-                savedImages = [];
-            }
             renderGallery();
         }
 
@@ -509,20 +508,8 @@
             const container = document.getElementById('gallery-container');
             container.innerHTML = '';
 
-            // Render User Images First
-            savedImages.forEach((img, index) => {
-                const div = document.createElement('div');
-                div.className = 'gallery-item';
-                div.innerHTML = `
-                    <img src="${img.src}" onclick="openLightbox(this.parentElement)">
-                    <div class="gallery-caption">${img.cap}</div>
-                    <button class="delete-btn" onclick="deleteImage(${index})"><i class="fas fa-times"></i></button>
-                `;
-                container.appendChild(div);
-            });
-
-            // Render Default Images
-            defaultImages.forEach(img => {
+            // Render Cloud/Default Images
+            cloudImages.forEach(img => {
                 const div = document.createElement('div');
                 div.className = 'gallery-item';
                 div.innerHTML = `
@@ -530,78 +517,6 @@
                     <div class="gallery-caption">${img.cap}</div>
                 `;
                 container.appendChild(div);
-            });
-        }
-
-        function handleImageUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                if(file.size > 5 * 1024 * 1024) {
-                    alert("ไฟล์ใหญ่เกิน 5MB ลองย่อก่อนนะ");
-                    input.value = '';
-                    return;
-                }
-                
-                // --- ASK FOR CAPTION ---
-                let caption = prompt("ตั้งชื่อรูปนี้หน่อยครับ:", "ความทรงจำของเรา");
-                if (caption === null) {
-                    input.value = ""; // Cancelled
-                    return;
-                }
-                if (caption.trim() === "") caption = "ความทรงจำของเรา";
-
-                // Compress image before saving to LocalStorage (Limit 5MB total usually)
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    compressImage(e.target.result, 600, 0.7).then(compressedSrc => {
-                        // Save with Caption
-                        savedImages.unshift({ src: compressedSrc, cap: caption });
-                        saveToLocal();
-                        renderGallery();
-                        input.value = ''; // Reset input to allow same file again
-                    });
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function deleteImage(index) {
-            if(confirm("ลบรูปนี้ไหม?")) {
-                savedImages.splice(index, 1);
-                saveToLocal();
-                renderGallery();
-            }
-        }
-
-        function saveToLocal() {
-            try {
-                localStorage.setItem('may_gallery', JSON.stringify(savedImages));
-            } catch (e) {
-                alert("พื้นที่เต็มแล้ว! ลบรูปเก่าออกก่อนนะ");
-            }
-        }
-
-        // Helper to resize image for storage
-        function compressImage(src, maxWidth, quality) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = src;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
-                };
             });
         }
 
@@ -655,11 +570,11 @@
             const [c1, c2] = flippedCards;
             if (c1.dataset.emoji === c2.dataset.emoji) {
                 matchedPairs++;
-                document.getElementById('memory-feedback').innerText = "แมทช์แล้ว 💖";
+                document.getElementById('memory-feedback').innerText = "แมทช์แล้ว! ดีมากเมย์ 💖";
                 flippedCards = [];
                 confettiEffect();
                 if (matchedPairs === memoryItems.length) {
-                    document.getElementById('memory-feedback').innerText = "สุดยอด!";
+                    document.getElementById('memory-feedback').innerText = "สุดยอดเลย เมย์!";
                     document.getElementById('memory-next-btn').classList.remove('hidden');
                 }
             } else {
@@ -674,7 +589,7 @@
 
         // --- MINI GAME 2: RHYTHM ---
         let rhythmScore = 0;
-        let heartsHitCount = 0; // New variable to track hits only
+        let heartsHitCount = 0; 
         let gameInterval;
         let isGameRunning = false;
         const maxHearts = 20;
@@ -682,12 +597,10 @@
         let heartsProcessed = 0;
 
         function resetRhythmGameUI() {
-            // Clear any lingering overlay
             document.getElementById('rhythm-result').classList.remove('show');
             document.getElementById('start-rhythm-btn').classList.remove('hidden');
             document.getElementById('skip-rhythm-btn').classList.add('hidden');
             document.getElementById('rhythm-btn').classList.remove('btn-disabled');
-            // Stop any running game
             isGameRunning = false;
             clearInterval(gameInterval);
             document.querySelectorAll('.falling-heart').forEach(e => e.remove());
@@ -695,18 +608,16 @@
 
         function startGameRhythm() {
             if(isGameRunning) return;
-            
-            // Clean slate
             resetRhythmGameUI();
 
             isGameRunning = true;
             rhythmScore = 0;
-            heartsHitCount = 0;
+            heartsHitCount = 0; // Reset hits
             heartsSpawned = 0;
             heartsProcessed = 0;
             
             document.getElementById('rhythm-score').innerText = rhythmScore;
-            document.getElementById('heart-count').innerText = "0";
+            document.getElementById('heart-count').innerText = "0"; // Start at 0
             document.getElementById('start-rhythm-btn').classList.add('hidden');
 
             const canvas = document.getElementById('rhythm-canvas');
@@ -717,7 +628,6 @@
                 if (heartsSpawned < maxHearts) {
                     spawnHeart(canvas);
                     heartsSpawned++;
-                    // Removed update UI here to fix the "counts when dropped" issue
                 } else {
                     clearInterval(gameInterval);
                 }
@@ -745,7 +655,7 @@
                     clearInterval(fall);
                     if(heart.parentNode) heart.remove();
                     showFeedback("MISS");
-                    processHeartEnd();
+                    processHeartEnd(); // Miss counts as processed
                 }
             }, 20);
             
@@ -763,14 +673,16 @@
                 if (topVal >= 210 && topVal <= 290) {
                     hit = true;
                     rhythmScore += 100;
-                    heartsHitCount++;
+                    heartsHitCount++; // Only increment on Hit
                     document.getElementById('rhythm-score').innerText = rhythmScore;
-                    document.getElementById('heart-count').innerText = heartsHitCount; // Update count ONLY on hit
+                    document.getElementById('heart-count').innerText = heartsHitCount; // Update UI here
+                    
                     clearInterval(h.dataset.interval);
                     h.remove();
+                    
                     showFeedback("PERFECT!");
                     confettiEffect();
-                    processHeartEnd();
+                    processHeartEnd(); // Hit counts as processed
                 }
             });
         }
@@ -787,9 +699,9 @@
             document.getElementById('rhythm-btn').classList.add('btn-disabled');
             
             let rankMsg = "";
-            if(rhythmScore >= 1800) rankMsg = "เป๊ะมากกกกกก 💖";
-            else if(rhythmScore >= 1000) rankMsg = "เก่งมากคร้าบบ 🥰";
-            else rankMsg = "พยายามอีกนิดนะ 💕";
+            if(rhythmScore >= 1800) rankMsg = "เทพซ่า! รักเบสสุดๆ 💖";
+            else if(rhythmScore >= 1000) rankMsg = "เก่งมากเมย์! 🥰";
+            else rankMsg = "พยายามอีกนิดนะ! แต่ก็น่ารัก 💕";
             
             document.getElementById('final-score').innerText = rhythmScore;
             document.getElementById('final-rank').innerText = rankMsg;
@@ -837,7 +749,7 @@
 
             if(index === quizData[currentQ].correct) {
                 el.classList.add('correct');
-                document.getElementById('quiz-feedback').innerText = "เก่งมาก💕";
+                document.getElementById('quiz-feedback').innerText = "เก่งมากเมย์! รู้จักกันดีจริง ๆ 💕";
                 document.getElementById('quiz-feedback').style.color = "green";
                 confettiEffect();
             } else {
@@ -948,4 +860,3 @@
     </script>
 </body>
 </html>
-
